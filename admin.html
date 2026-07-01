@@ -190,31 +190,27 @@
         <div class="content-editor-card">
           <div class="content-editor-header">
             <h3>✈️ 새 항공기 정보 입력</h3>
-            <button class="btn btn-primary btn-sm" onclick="addNewAircraft()">➕ 추가</button>
+            <button class="btn btn-primary btn-sm" onclick="addNewAircraft()" id="add-aircraft-btn">➕ 추가</button>
           </div>
           <div class="content-editor-body">
             <div class="form-group">
-              <label>ID (영문 소문자, 예: bomber) *</label>
-              <input class="form-control" id="new-id" placeholder="고유 식별자 (영문 소문자)" maxlength="30">
-            </div>
-            <div class="form-group">
               <label>이모지 *</label>
-              <input class="form-control" id="new-emoji" placeholder="예: 🛸" maxlength="4">
+              <input class="form-control" id="new-emoji" placeholder="예: 🛸  ✈️  🚁  🛩️" maxlength="4">
             </div>
             <div class="form-group">
-              <label>항공기 이름 *</label>
+              <label>항공기 이름 * <span style="font-size:0.8rem;color:var(--text-light);font-weight:400">(한글 OK)</span></label>
               <input class="form-control" id="new-title" placeholder="예: 폭격기 (Bomber)" maxlength="60">
             </div>
             <div class="form-group">
-              <label>카테고리</label>
+              <label>카테고리 <span style="font-size:0.8rem;color:var(--text-light);font-weight:400">(선택)</span></label>
               <input class="form-control" id="new-category" placeholder="예: 군용 항공기" maxlength="30">
             </div>
             <div class="form-group">
-              <label>요약 설명 *</label>
-              <input class="form-control" id="new-summary" placeholder="카드에 표시될 짧은 설명" maxlength="200">
+              <label>요약 설명 * <span style="font-size:0.8rem;color:var(--text-light);font-weight:400">(카드에 표시)</span></label>
+              <input class="form-control" id="new-summary" placeholder="짧은 설명을 입력하세요" maxlength="200">
             </div>
             <div class="form-group">
-              <label>상세 내용 (마크다운 지원: ## 제목, **굵기**, - 목록, 표)</label>
+              <label>상세 내용 <span style="font-size:0.8rem;color:var(--text-light);font-weight:400">(## 제목, **굵기**, - 목록, 표 지원)</span></label>
               <textarea class="form-control" id="new-content" placeholder="상세 내용 입력..." style="min-height:300px;"></textarea>
             </div>
           </div>
@@ -435,37 +431,52 @@ async function saveContent() {
 
 // 새 항공기 추가
 async function addNewAircraft() {
-  const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
   const emoji = document.getElementById('new-emoji').value.trim();
   const title = document.getElementById('new-title').value.trim();
   const category = document.getElementById('new-category').value.trim();
   const summary = document.getElementById('new-summary').value.trim();
   const content = document.getElementById('new-content').value.trim();
 
-  if (!id) return showToast('ID를 입력하세요 (영문 소문자).', 'error');
   if (!title) return showToast('항공기 이름을 입력하세요.', 'error');
   if (!summary) return showToast('요약 설명을 입력하세요.', 'error');
 
-  try {
-    const docRef = db.collection('site_contents').doc(id);
-    const existing = await docRef.get();
-    if (existing.exists) return showToast('이미 존재하는 ID입니다.', 'error');
+  // ID 자동 생성 (타임스탬프 기반, 고유값 보장)
+  const autoId = 'aircraft_' + Date.now();
 
+  const btn = document.getElementById('add-aircraft-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '추가 중...'; }
+
+  try {
+    const docRef = db.collection('site_contents').doc(autoId);
     await docRef.set({
-      id, emoji: emoji||'✈️', title, category, summary, content,
+      id: autoId,
+      emoji: emoji || '✈️',
+      title,
+      category,
+      summary,
+      content,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    ['new-id','new-emoji','new-title','new-category','new-summary','new-content'].forEach(k => {
+    ['new-emoji','new-title','new-category','new-summary','new-content'].forEach(k => {
       document.getElementById(k).value = '';
     });
 
     await loadAircraftSelectList();
-    showToast(`'${title}' 항공기가 추가되었습니다!`, 'success');
-    switchPanel('content-editor', document.querySelector('.admin-sidebar a:nth-child(5)'));
+    showToast(`'${title}' 항공기가 추가되었습니다! ✅`, 'success');
+    // 콘텐츠 편집 패널로 전환
+    switchPanel('content-editor', document.querySelector('.admin-sidebar a[onclick*="content-editor"]'));
   } catch(e) {
-    showToast('추가에 실패했습니다.', 'error');
+    console.error(e);
+    const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+    if (isPermission) {
+      alert('📋 Firestore 보안 규칙 설정 필요!\n\nFirebase Console → Firestore Database → 규칙 탭에서\n아래 내용으로 교체 후 게시하세요:\n\nrules_version = \'2\';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}');
+    } else {
+      showToast('추가에 실패했습니다. Firebase 설정을 확인하세요.', 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '➕ 추가'; }
   }
 }
 

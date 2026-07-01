@@ -311,10 +311,14 @@ async function submitPost() {
   if (!title) return showToast('제목을 입력하세요.', 'error');
   if (!content) return showToast('내용을 입력하세요.', 'error');
 
+  // 버튼 비활성화 (중복 클릭 방지)
+  const submitBtn = document.querySelector('#view-write .btn-primary');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '등록 중...'; }
+
   try {
     await db.collection('board').add({
       title, author, content,
-      password: btoa(pw), // 간단 인코딩
+      password: btoa(pw),
       views: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -327,7 +331,17 @@ async function submitPost() {
     showToast('글이 등록되었습니다!', 'success');
     showView('list');
   } catch (e) {
-    showToast('등록에 실패했습니다.', 'error');
+    console.error(e);
+    // Firestore 권한 오류 안내
+    const isPermission = e.code === 'permission-denied' || (e.message && e.message.includes('permission'));
+    if (isPermission) {
+      showToast('⚠️ Firebase 쓰기 권한이 없습니다. Firestore 보안 규칙을 확인하세요.', 'error');
+      alert('📋 Firestore 보안 규칙 설정 필요!\n\nFirebase Console → Firestore Database → 규칙 탭에서\n아래 내용으로 교체 후 게시하세요:\n\nallow read, write: if true;');
+    } else {
+      showToast('등록에 실패했습니다. Firebase 설정을 확인하세요.', 'error');
+    }
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '📤 등록'; }
   }
 }
 
