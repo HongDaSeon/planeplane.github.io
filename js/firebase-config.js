@@ -5,12 +5,12 @@
 // ====================================================
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAu25B30rcBlzF8x_SzLeelzu2nPVhE6vw",
+  authDomain: "planeplaentest.firebaseapp.com",
+  projectId: "planeplaentest",
+  storageBucket: "planeplaentest.firebasestorage.app",
+  messagingSenderId: "812567690754",
+  appId: "1:812567690754:web:b723ae7652253dc163711b"
 };
 
 // Firebase 초기화
